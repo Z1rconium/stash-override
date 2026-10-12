@@ -183,6 +183,29 @@ async function testYouTube() {
   return { ok: false }
 }
 
+// YouTube 主站 —— 主站可达性 + 出口地区（区别于上面的 Premium 解锁检测）
+// youtube.com 首页的 ytcfg 内嵌 "INNERTUBE_CONTEXT_GL":"XX"（或 "GL":"XX"），
+// 该值取自请求出口 IP 的地理位置，即当前出口所属地区。
+async function testYouTubeMain() {
+  let r
+  try {
+    r = await GET({ url: 'https://www.youtube.com/', 'auto-redirect': true })
+  } catch (e) {
+    // 连接被重置 / DNS 污染 / 超时：主站不可达
+    return { ok: false, note: '无法连接' }
+  }
+  const s = r.body || ''
+  if (/www\.google\.cn/.test(s)) return { ok: false, region: 'CN', note: '仅中国' }
+  if (r.status === 403) return { ok: false, note: 'IP 被封' }
+  if (r.status !== 200) return { ok: false, note: r.status ? 'HTTP ' + r.status : '无法访问' }
+  const m =
+    s.match(/"INNERTUBE_CONTEXT_GL"\s*:\s*"([A-Za-z]{2})"/) ||
+    s.match(/"GL"\s*:\s*"([A-Za-z]{2})"/)
+  if (m) return { ok: true, region: m[1].toUpperCase() }
+  // 200 但页面里没有地区标记：返回了异常页 / 被中间人替换
+  return { ok: false, note: '页面异常' }
+}
+
 // Spotify —— 移植 Spotify.go
 async function testSpotify() {
   const body =
@@ -260,7 +283,8 @@ async function testTikTok() {
 const SERVICES = {
   netflix: { name: 'Netflix', icon: 'play.tv.fill', test: testNetflix },
   disney: { name: 'Disney+', icon: 'sparkles', test: testDisneyPlus },
-  youtube: { name: 'YouTube', icon: 'play.rectangle.fill', test: testYouTube },
+  youtube: { name: 'YouTube Premium', icon: 'play.rectangle.fill', test: testYouTube },
+  'youtube-main': { name: 'YouTube 主站', icon: 'globe', test: testYouTubeMain },
   spotify: { name: 'Spotify', icon: 'music.note', test: testSpotify },
   chatgpt: { name: 'ChatGPT', icon: 'bubble.left.and.bubble.right.fill', test: testChatGPT },
   claude: { name: 'Claude', icon: 'text.bubble.fill', test: testClaude },
@@ -279,10 +303,10 @@ function resolveServiceKey() {
   } catch (e) {
     /* ignore */
   }
-  // 2) 脚本名兜底：media-netflix -> netflix
+  // 2) 脚本名兜底：media-netflix -> netflix、media-youtube-main -> youtube-main
   try {
     const n = String($script && $script.name ? $script.name : '')
-    const m = n.match(/media[-_]([a-z0-9]+)/i)
+    const m = n.match(/^media[-_](.+)$/i)
     if (m) return m[1].toLowerCase()
   } catch (e) {
     /* ignore */

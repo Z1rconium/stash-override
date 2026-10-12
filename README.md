@@ -6,7 +6,7 @@
 - 🟥 **未解锁 / 被封** → 整块红色背景，`content` 显示原因（如“仅香港”“IP 被封”）
 - ⬜️ **超时 / 异常** → 灰色背景
 
-支持服务：**Netflix、Disney+、YouTube Premium、Spotify、ChatGPT、Claude、TikTok**。
+支持服务：**Netflix、Disney+、YouTube Premium、YouTube 主站、Spotify、ChatGPT、Claude、TikTok**。
 
 检测逻辑移植自 [MediaUnlockTest](https://github.com/HsukqiLee/MediaUnlockTest) 的 Go 实现
 （`pkg/providers/*.go`），并改写为 Stash 的 JavaScript 脚本。
@@ -27,11 +27,11 @@
 
 ## 工作原理
 
-一个覆写里声明 7 块 `collapsed: true` 的 Tile（`media-netflix`、`media-disney`、…），
+一个覆写里声明 8 块 `collapsed: true` 的 Tile（`media-netflix`、`media-disney`、…），
 全部指向同一个脚本 `media-unlock.js`，脚本通过两种方式确定当前要测哪个服务：
 
 1. Tile 的 `argument`：`{"service":"netflix"}`
-2. 脚本名兜底：`media-netflix` → `netflix`
+2. 脚本名兜底：`media-netflix` → `netflix`、`media-youtube-main` → `youtube-main`
 
 确定服务后只测该服务，并把结果写入 Tile：解锁 → `#34C759`，未解锁 → `#FF3B30`，
 异常 → `#8E8E93`。若两者都取不到服务名，则退化为“一个合并 Tile + 🟢/🔴 圆点”的模式。
@@ -57,11 +57,15 @@
 4. **仅 IPv4**：Stash `$httpClient` **无法按请求强制 IPv4/IPv6**。走代理时由 Fake-IP 把域名转给
    节点，最终协议族由**节点**决定。如需「仅 IPv4」结果，请配合 IPv4-only 出口的节点使用。
 5. **内存**：iOS Network Extension 有 15/50MB 上限，不要一次性移植全部 provider。
+6. **YouTube 主站**：`YoutubeRegion`（Premium 解锁）之外，另有一块 **YouTube 主站** Tile 检测主站可达性与
+   出口地区 —— 直接请求 `https://www.youtube.com/` 首页，解析 ytcfg 内嵌的
+   `"INNERTUBE_CONTEXT_GL":"XX"`（或 `"GL":"XX"`），该值来自请求出口 IP 的地理位置。
+   连接被重置 / DNS 污染 / 超时记为「无法连接」，403 记为「IP 被封」，返回 `www.google.cn` 记为「仅中国」。
 
 ## 文件
 
 ```
-media-unlock/media-unlock.stoverride   # 覆写声明：7 块折叠 Tile + 7 个 script-providers
+media-unlock/media-unlock.stoverride   # 覆写声明：8 块折叠 Tile + 8 个 script-providers
 media-unlock/media-unlock.js           # 检测脚本（所有服务 + 主流程）
 ```
 

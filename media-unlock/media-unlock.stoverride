@@ -2,12 +2,12 @@ name: '📺 流媒体解锁检测'
 desc: |-
   在「第三方服务」面板中为每个服务显示一个折叠 Tile：解锁=绿色背景，未解锁=红色背景，灰色=检测失败，
   content 显示解锁地区。
-  服务：Netflix / Disney+ / YouTube / Spotify / ChatGPT / Claude / TikTok。
+  服务：Netflix / Disney+ / YouTube Premium / YouTube 主站 / Spotify / ChatGPT / Claude / TikTok。
   测试逻辑移植自 MediaUnlockTest（见 README）。
 author: 'you'
 category: '📺 Media'
 icon: 'play.tv.fill'
-version: '0.5.1'
+version: '0.6.0'
 
 tiles:
   - name: media-netflix
@@ -26,11 +26,18 @@ tiles:
     argument: '{"service":"disney"}'
   - name: media-youtube
     collapsed: true
-    title: YouTube
+    title: YouTube Premium
     content: 检测中…
     icon: play.rectangle.fill
     backgroundColor: '#8E8E93'
     argument: '{"service":"youtube"}'
+  - name: media-youtube-main
+    collapsed: true
+    title: YouTube 主站
+    content: 检测中…
+    icon: globe
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"youtube-main"}'
   - name: media-spotify
     collapsed: true
     title: Spotify
@@ -68,6 +75,9 @@ script-providers:
     url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
     interval: 21600
   media-youtube:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-youtube-main:
     url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
     interval: 21600
   media-spotify:
