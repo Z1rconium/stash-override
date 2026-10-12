@@ -170,7 +170,11 @@ async function testDisneyPlus() {
 async function testYouTube() {
   const cookie =
     'YSC=BiCUU3-5Gdk; CONSENT=YES+cb.20220301-11-p0.en+FX+700; GPS=1; VISITOR_INFO1_LIVE=4VwPMkB7W5A; SOCS=CAISOAgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjQwNTIxLjA3X3AxGgV6aC1DTiACGgYIgNTEsgY; PREF=f7=4000&tz=Asia.Shanghai&f4=4000000'
-  const r = await GET({ url: 'https://www.youtube.com/premium', headers: { Cookie: cookie } })
+  const r = await GET({
+    url: 'https://www.youtube.com/premium',
+    headers: { Cookie: cookie },
+    'auto-redirect': true,
+  })
   if (r.status !== 200) return { ok: false }
   const s = r.body
   if (s.includes('www.google.cn')) return { ok: false, region: 'CN', note: '仅中国' }
@@ -306,7 +310,7 @@ function resolveServiceKey() {
   // 2) 脚本名兜底：media-netflix -> netflix、media-youtube-main -> youtube-main
   try {
     const n = String($script && $script.name ? $script.name : '')
-    const m = n.match(/^media[-_](.+)$/i)
+    const m = n.match(/media[-_](.+)$/i)
     if (m) return m[1].toLowerCase()
   } catch (e) {
     /* ignore */

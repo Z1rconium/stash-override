@@ -7,7 +7,7 @@ desc: |-
 author: 'you'
 category: '📺 Media'
 icon: 'play.tv.fill'
-version: '0.6.0'
+version: '0.6.1'
 
 tiles:
   - name: media-netflix
@@ -69,26 +69,26 @@ tiles:
 
 script-providers:
   media-netflix:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-disney:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-youtube:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-youtube-main:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-spotify:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-chatgpt:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-claude:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
   media-tiktok:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js?v=0.6.1
     interval: 21600
