@@ -1,0 +1,91 @@
+name: '📺 流媒体解锁检测'
+desc: |-
+  在「第三方服务」面板中为每个服务显示一个折叠 Tile：解锁=绿色背景，未解锁=红色背景，灰色=检测失败，
+  content 显示解锁地区。
+  服务：Netflix / Disney+ / YouTube / Spotify / ChatGPT / Claude / TikTok。
+  测试逻辑移植自 MediaUnlockTest（见 README）。
+author: 'you'
+category: '📺 Media'
+icon: 'play.tv.fill'
+version: '0.5.0'
+
+tiles:
+  - name: media-netflix
+    collapsed: true
+    interval: 21600
+    title: Netflix
+    content: 检测中…
+    icon: play.tv.fill
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"netflix"}'
+  - name: media-disney
+    collapsed: true
+    interval: 21600
+    title: Disney+
+    content: 检测中…
+    icon: sparkles
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"disney"}'
+  - name: media-youtube
+    collapsed: true
+    interval: 21600
+    title: YouTube
+    content: 检测中…
+    icon: play.rectangle.fill
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"youtube"}'
+  - name: media-spotify
+    collapsed: true
+    interval: 21600
+    title: Spotify
+    content: 检测中…
+    icon: music.note
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"spotify"}'
+  - name: media-chatgpt
+    collapsed: true
+    interval: 21600
+    title: ChatGPT
+    content: 检测中…
+    icon: bubble.left.and.bubble.right.fill
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"chatgpt"}'
+  - name: media-claude
+    collapsed: true
+    interval: 21600
+    title: Claude
+    content: 检测中…
+    icon: text.bubble.fill
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"claude"}'
+  - name: media-tiktok
+    collapsed: true
+    interval: 21600
+    title: TikTok
+    content: 检测中…
+    icon: play.square.stack
+    backgroundColor: '#8E8E93'
+    argument: '{"service":"tiktok"}'
+
+script-providers:
+  media-netflix:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-disney:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-youtube:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-spotify:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-chatgpt:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-claude:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
+  media-tiktok:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/media-unlock/media-unlock.js
+    interval: 21600
