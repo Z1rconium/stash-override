@@ -7,12 +7,11 @@ desc: |-
 author: 'you'
 category: '📺 Media'
 icon: 'play.tv.fill'
-version: '0.5.0'
+version: '0.5.1'
 
 tiles:
   - name: media-netflix
     collapsed: true
-    interval: 21600
     title: Netflix
     content: 检测中…
     icon: play.tv.fill
@@ -20,7 +19,6 @@ tiles:
     argument: '{"service":"netflix"}'
   - name: media-disney
     collapsed: true
-    interval: 21600
     title: Disney+
     content: 检测中…
     icon: sparkles
@@ -28,7 +26,6 @@ tiles:
     argument: '{"service":"disney"}'
   - name: media-youtube
     collapsed: true
-    interval: 21600
     title: YouTube
     content: 检测中…
     icon: play.rectangle.fill
@@ -36,7 +33,6 @@ tiles:
     argument: '{"service":"youtube"}'
   - name: media-spotify
     collapsed: true
-    interval: 21600
     title: Spotify
     content: 检测中…
     icon: music.note
@@ -44,7 +40,6 @@ tiles:
     argument: '{"service":"spotify"}'
   - name: media-chatgpt
     collapsed: true
-    interval: 21600
     title: ChatGPT
     content: 检测中…
     icon: bubble.left.and.bubble.right.fill
@@ -52,7 +47,6 @@ tiles:
     argument: '{"service":"chatgpt"}'
   - name: media-claude
     collapsed: true
-    interval: 21600
     title: Claude
     content: 检测中…
     icon: text.bubble.fill
@@ -60,7 +54,6 @@ tiles:
     argument: '{"service":"claude"}'
   - name: media-tiktok
     collapsed: true
-    interval: 21600
     title: TikTok
     content: 检测中…
     icon: play.square.stack
