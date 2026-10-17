@@ -1,0 +1,22 @@
+# systemd 单元模板。install.sh 会把 @APP_DIR@ / @ETC_DIR@ 替换成实际路径后安装到 /etc/systemd/system/。
+[Unit]
+Description=IEPL whitelist direct-IP sync service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 @APP_DIR@/server.py
+# 上游地址 / API Key 与访问 token 都放在 root 才可读的环境文件里，不写进代码或命令行
+EnvironmentFile=@ETC_DIR@/upstream.env
+EnvironmentFile=@ETC_DIR@/token.env
+# 以临时的非特权用户运行，并收紧权限
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

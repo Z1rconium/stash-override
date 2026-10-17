@@ -1,0 +1,5 @@
+# 防止误把填了真实密钥 / token 的配置提交到公开仓库
+*.env
+!*.env.example
+token*
+secrets*

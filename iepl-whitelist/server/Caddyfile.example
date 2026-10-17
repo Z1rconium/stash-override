@@ -1,0 +1,15 @@
+# Caddy 站点块示例：追加到你的 /etc/caddy/Caddyfile，然后 `systemctl reload caddy`。
+#
+# ★ 把 YOUR_DOMAIN 改成你的同步服务域名。
+#   DNS 只配 A 记录（IPv4）指向这台服务器：IEPL 白名单通常只接受 IPv4，
+#   不配 AAAA 可以避免客户端走 IPv6 而被服务端拒绝。
+YOUR_DOMAIN {
+	encode gzip
+
+	reverse_proxy 127.0.0.1:8787 {
+		# 用 Caddy 看到的“连接来源”覆盖 X-Real-IP。服务端据此判断你的直连出口 IP，
+		# 并且只在请求来自本机回环（即这里的 Caddy）时才信任这个头。
+		# 不要在 Caddy 前面再套 CDN / 其他反代：那样看到的会是它们的 IP，而不是你的。
+		header_up X-Real-IP {remote_host}
+	}
+}
