@@ -1,0 +1,64 @@
+name: '🛡 IEPL 白名单自动同步'
+desc: |-
+  每 5 分钟检测一次「直连出口 IP」，不在 IEPL 白名单里就自动添加；
+  代理启动时立即检测一次；首页「面板」里的 Tile 显示状态，点击即可手动同步。
+  使用前必须先把本文件里带 ★ 的 YOUR_… 占位符改成你自己的（见文件顶部说明）。
+author: 'Z1rconium'
+category: '🛡 Network'
+icon: 'checkmark.shield.fill'
+version: '1.0.0'
+
+# ==============================================================================
+# ★ 使用前必须修改的自定义信息（本文件里一共 2 种，全部用 ★ 标出，别处都不用改）
+#
+#   ★ YOUR_DOMAIN : 你自己部署的白名单同步服务的域名，例如 sync.example.com
+#                   · 规则 prepend-rules 里写「域名本身」（不带 https://）        —— 1 处
+#                   · 两个 argument 里的 "api" 写完整地址 https://域名（不带结尾 /） —— 2 处
+#                   三处必须是同一个域名。
+#
+#   ★ YOUR_TOKEN  : 访问你的同步服务用的 token（服务端校验的 X-Token）。       —— 2 处（两个 argument）
+#                   token 等同于“白名单写入权限”，请只填在你本机的覆写里，
+#                   不要把填好的覆写文件提交到公开仓库，也不要分享给别人。
+#
+# 没有填写（仍是 YOUR_… 占位符）时脚本不会联网，面板上会显示“尚未配置”。
+# 其余内容（cron 周期、Tile 外观、脚本地址）一般不需要改。
+# ==============================================================================
+
+# 让同步服务的域名始终走 DIRECT：服务端把“请求来源 IP”当作你的直连 IP，
+# 如果这个请求走了代理，白名单里记录的就是代理节点的 IP，而不是你的。
+prepend-rules:
+  # ★ 把 YOUR_DOMAIN 改成你的同步服务域名（不带 https://）
+  - DOMAIN,YOUR_DOMAIN,DIRECT
+
+cron:
+  script:
+    - name: iepl-whitelist-cron
+      # 每分钟触发一次；脚本内部再判断是否需要联网（代理刚启动 / 满 5 分钟 / 失败后 1 分钟重试）。
+      # 想改变检测间隔请改脚本里的 INTERVAL，而不是这里。
+      cron: '* * * * *'
+      timeout: 30
+      # ★ 把 YOUR_DOMAIN 改成你的域名（保留前面的 https://），把 YOUR_TOKEN 改成你的 token。
+      #   整个 argument 是一个 JSON 字符串，注意保留引号和逗号。
+      argument: '{"mode":"cron","api":"https://YOUR_DOMAIN","token":"YOUR_TOKEN"}'
+
+tiles:
+  - name: iepl-whitelist-tile
+    # 面板自动刷新周期（秒）。每次刷新都会做一次同步，点击 Tile 同样会立即同步。
+    interval: 300
+    title: IEPL 白名单
+    content: 点击同步
+    icon: checkmark.shield.fill
+    backgroundColor: '#546E7A'
+    # ★ 与上面 cron 里的 argument 填同样的 api 与 token。
+    argument: '{"mode":"tile","api":"https://YOUR_DOMAIN","token":"YOUR_TOKEN"}'
+
+script-providers:
+  # 脚本从本仓库的 GitHub raw 分发。若你的网络访问 raw.githubusercontent.com 不稳定，
+  # 可把脚本文件放到自己的服务器，再把下面两个 url 改成你的地址。
+  # 更新脚本后把 ?v= 后面的版本号改一下，可强制 Stash 重新下载（脚本按 interval 缓存）。
+  iepl-whitelist-cron:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.0.0
+    interval: 86400
+  iepl-whitelist-tile:
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.0.0
+    interval: 86400

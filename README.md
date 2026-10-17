@@ -83,6 +83,12 @@ media-unlock/media-unlock.js           # 检测脚本（所有服务 + 主流程
   为此每次改脚本都会给 `script-providers` 的 URL 追加版本查询串（如 `?v=0.6.1`），
   URL 变化会强制 Stash 重新下载脚本；更新后请按上面第 2 步刷新一次远程资源。
 
+## 其他覆写
+
+| 目录 | 说明 |
+| --- | --- |
+| [`iepl-whitelist/`](./iepl-whitelist/) | IEPL 白名单自动同步：定时检测直连出口 IP，不在白名单就自动添加，Tile 显示状态、点击手动同步。需自建同步服务，**使用前必须填写自己的域名和 token** |
+
 ## 致谢
 
 测试逻辑基于 [HsukqiLee/MediaUnlockTest](https://github.com/HsukqiLee/MediaUnlockTest)（MIT），
