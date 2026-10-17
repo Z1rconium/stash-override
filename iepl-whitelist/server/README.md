@@ -24,6 +24,8 @@ Stash / 快捷指令 ──HTTPS + X-Token──▶ Caddy ──▶ server.py �
 
 ## 安装
 
+> 🤖 不想手动操作？可以把 [`../AGENT-PROMPT.md`](../AGENT-PROMPT.md) 里的提示词交给 AI Agent，让它替你完成下面的全部步骤。
+
 ```bash
 git clone https://github.com/Z1rconium/stash-override.git
 cd stash-override/iepl-whitelist/server
