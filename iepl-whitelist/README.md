@@ -1,6 +1,8 @@
-# IEPL 白名单自动同步（Stash）
+# IEPL 白名单自动同步（Stash / Loon）
 
 IEPL 前置服务器按「来源 IP 白名单」放行时，家宽 / 移动网络的出口 IP 会经常变化，每次都手动去后台添加很麻烦。
+Loon 用户请按 [Loon 插件安装说明](./LOON.md) 配置 [`iepl-whitelist.plugin`](./iepl-whitelist.plugin)。下文为 Stash 覆写说明。
+
 这个覆写让 Stash 自动完成：
 
 - ⏱ **每 5 分钟**检测一次你的**直连出口 IP**，不在白名单里就自动添加；

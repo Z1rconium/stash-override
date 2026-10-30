@@ -87,7 +87,7 @@ media-unlock/media-unlock.js           # 检测脚本（所有服务 + 主流程
 
 | 目录 | 说明 |
 | --- | --- |
-| [`iepl-whitelist/`](./iepl-whitelist/) | IEPL 白名单自动同步：定时检测直连出口 IP，不在白名单就自动添加，Tile 显示状态、点击手动同步。含 Stash 覆写与[服务端实现（一键安装）](./iepl-whitelist/server/README.md)，也可以[把提示词交给 AI Agent 一键完成安装配置](./iepl-whitelist/AGENT-PROMPT.md)。**使用前必须填写自己的域名、token 与 API 信息** |
+| [`iepl-whitelist/`](./iepl-whitelist/) | IEPL 白名单自动同步：定时检测直连出口 IP，不在白名单就自动添加，Tile 显示状态、点击手动同步。含 Stash 覆写、[Loon 插件](./iepl-whitelist/LOON.md)与[服务端实现（一键安装）](./iepl-whitelist/server/README.md)，也可以[把提示词交给 AI Agent 一键完成安装配置](./iepl-whitelist/AGENT-PROMPT.md)。**使用前必须填写自己的域名、token 与 API 信息** |
 
 ## 致谢
 

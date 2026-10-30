@@ -1,15 +1,15 @@
 /*
- * iepl-whitelist.js — Stash：自动把「直连出口 IP」同步到 IEPL 白名单
+ * iepl-whitelist.js — Stash / Loon：自动把「直连出口 IP」同步到 IEPL 白名单
  *
- * 本脚本不含任何自定义信息。服务域名与 token 都从覆写的 argument 传入，
- * 需要修改的地方全部在 iepl-whitelist.stoverride 里（见该文件顶部的 ★ 标注）。
+ * 服务地址与 token 从 argument 传入：Stash 在覆写中填写；Loon 在插件参数界面填写。
+ * Loon 的入口由插件固定 tag 区分：iepl-whitelist-cron / -network / -manual。
  *
- * argument（JSON 字符串）：
+ * argument（Stash 为 JSON 字符串；Loon 为插件参数对象）：
  *   mode  : "cron" 或 "tile"（由覆写里的两个入口各自设置，不要改）
  *   api   : 你的同步服务地址，如 "https://your.domain.example"（不要以 / 结尾）
  *   token : 访问同步服务的 token（对应请求头 X-Token）
  *
- * 两种入口：
+ * Stash 两种入口（Loon 另有网络变化入口，立即探测同步）：
  *   cron : 每分钟触发一次，但本地先判断是否需要同步，只有以下情况才联网
  *          - 代理刚启动（距离上次 cron 超过 150 秒，说明中间代理是关着的）
  *          - 距离上次成功同步已满 5 分钟
@@ -40,7 +40,11 @@ const PROBE_TIMEOUT = 3;             // 加上同步最多 24 秒，总计 27 �
 const REQ_TIMEOUT = 8;               // 单次请求超时（秒）；3 × 8 = 24 秒，小于 cron 的 30 秒
 
 const args = parseArgs(typeof $argument === 'undefined' ? '' : $argument);
-const mode = args.mode || 'tile';
+const isLoon = typeof $loon !== 'undefined';
+const scriptName = typeof $script !== 'undefined' ? $script.name : '';
+const mode = isLoon
+  ? (scriptName === 'iepl-whitelist-cron' ? 'cron' : scriptName === 'iepl-whitelist-network' ? 'network' : 'manual')
+  : (args.mode || 'tile');
 const API = String(args.api || '').replace(/\/+$/, '');
 const TOKEN = String(args.token || '');
 const now = Date.now();
@@ -67,36 +71,48 @@ function ago(ts) {
 
 // 没填、或仍是覆写里的占位符（YOUR_…）都视为未配置
 function configured() {
-  return API && TOKEN && !/YOUR_/.test(API) && !/YOUR_/.test(TOKEN);
+  return API && TOKEN && (!isLoon || /^https:\/\/[^/\s?#]+(?:\/[^\s?#]*)?$/.test(API)) && !/YOUR_/.test(API) && !/YOUR_/.test(TOKEN);
+}
+
+// Loon 的 timeout 单位是毫秒，Stash 是秒；两端都强制 DIRECT。
+// Loon 默认允许不可信证书，因此必须显式关闭 insecure。
+function directOptions(options) {
+  if (isLoon) {
+    options.node = 'DIRECT';
+    options.timeout *= 1000;
+    options.insecure = false;
+  } else {
+    options.headers['X-Stash-Selected-Proxy'] = encodeURIComponent('DIRECT');
+  }
+  return options;
 }
 
 // 探测和同步都固定使用 DIRECT，不查询代理节点健康状态。
 // HTTPS + 预期响应可排除大部分登录门户；失败仅表示直连探测未通过。
 function checkConnection(cb) {
-  $httpClient.get({
+  $httpClient.get(directOptions({
     url: PROBE_URL,
-    headers: { 'X-Stash-Selected-Proxy': encodeURIComponent('DIRECT'), 'Cache-Control': 'no-cache' },
+    headers: { 'Cache-Control': 'no-cache' },
     timeout: PROBE_TIMEOUT,
     'auto-redirect': false,
     'auto-cookie': false,
-  }, (err, resp, data) => {
+  }), (err, resp, data) => {
     cb(!err && resp && Number(resp.status) === 200 && /<BODY>Success<\/BODY>/i.test(String(data)));
   });
 }
 
 // 回调 cb(err, j)：err = { kind: 'net' | 'server', msg }
 function request(path, cb) {
-  $httpClient.post({
+  $httpClient.post(directOptions({
     url: API + path,
     headers: {
       'X-Token': TOKEN,
-      'X-Stash-Selected-Proxy': encodeURIComponent('DIRECT'), // 强制直连
       'Accept': 'application/json',
     },
     body: '',
     timeout: REQ_TIMEOUT,
     'auto-redirect': false, // 不把 token 随重定向发送到其他地址
-  }, (err, resp, data) => {
+  }), (err, resp, data) => {
     if (err) return cb({ kind: 'net', msg: String(err) });
     let j = null;
     try { j = JSON.parse(data); } catch (e) {}
@@ -197,7 +213,26 @@ function tile() {
     if (s.removed && justAdded) lines.push('已移除  ' + s.removed);
     lines.push('检查于 ' + hhmm(s.lastCheck) + ' · 下次约 ' + next);
   }
-  $done({ title, content: lines.join('\n'), icon, backgroundColor: color });
+  if (isLoon) {
+    const content = lines.join('\n');
+    console.log(title + '\n' + content);
+    // 新增通知已由 record() 发送，避免一次手动同步重复提示。
+    if (!(s.status === 'added' && s.lastAdded === now && !s.error && !s.offline)) {
+      $notification.post(title, '', content);
+    }
+    $done();
+  } else {
+    $done({ title, content: lines.join('\n'), icon, backgroundColor: color });
+  }
+}
+
+function finish() {
+  if (mode !== 'cron' && mode !== 'network') return tile();
+  if (isLoon) {
+    console.log(state.offline ? '直连联网探测未通过，已跳过同步'
+      : state.error ? 'IEPL 同步失败（详见状态与通知）' : 'IEPL 同步成功：' + state.ip);
+  }
+  $done();
 }
 
 // 离线跳过不计作同步失败，也不更新 lastCheck / lastOk。
@@ -206,20 +241,23 @@ function runSync() {
     state.offline = !online;
     if (!online) {
       save(STATE_KEY, state);
-      if (mode === 'cron') $done(); else tile();
+      finish();
       return;
     }
     sync((err, j) => {
       record(err, j);
       save(STATE_KEY, state);
-      if (mode === 'cron') $done(); else tile();
+      finish();
     });
   });
 }
 
 if (!configured()) {
   // 还没填自定义信息：面板上提示去哪里填；cron 静默退出，避免每分钟打扰
-  if (mode === 'cron') {
+  if (mode === 'cron' || mode === 'network') {
+    $done();
+  } else if (isLoon) {
+    $notification.post('IEPL 白名单 ⚙️', '尚未配置', '请在插件参数中填写 HTTPS 服务地址和 token');
     $done();
   } else {
     $done({

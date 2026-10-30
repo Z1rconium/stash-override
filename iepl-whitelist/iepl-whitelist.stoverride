@@ -7,7 +7,7 @@ desc: |-
 author: 'Z1rconium'
 category: '🛡 Network'
 icon: 'checkmark.shield.fill'
-version: '1.1.0'
+version: '1.2.0'
 
 # ==============================================================================
 # ★ 使用前必须修改的自定义信息（本文件里一共 2 种，全部用 ★ 标出，别处都不用改）
@@ -59,8 +59,8 @@ script-providers:
   # 可把脚本文件放到自己的服务器，再把下面两个 url 改成你的地址。
   # 更新脚本后把 ?v= 后面的版本号改一下，可强制 Stash 重新下载（脚本按 interval 缓存）。
   iepl-whitelist-cron:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.1.0
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.0
     interval: 86400
   iepl-whitelist-tile:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.1.0
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.0
     interval: 86400
