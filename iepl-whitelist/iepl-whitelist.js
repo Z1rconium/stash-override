@@ -39,21 +39,28 @@ const PROBE_URL = 'https://www.apple.com/library/test/success.html';
 const PROBE_TIMEOUT = 3;             // 加上同步最多 24 秒，总计 27 秒
 const REQ_TIMEOUT = 8;               // 单次请求超时（秒）；3 × 8 = 24 秒，小于 cron 的 30 秒
 
-const args = parseArgs(typeof $argument === 'undefined' ? '' : $argument);
-const isLoon = typeof $loon !== 'undefined';
+const rawArgument = typeof $argument === 'undefined' ? undefined : $argument;
+const args = parseArgs(rawArgument);
+const isStash = typeof $environment !== 'undefined' && !!($environment['stash-version'] || $environment['stash-build']);
+const isLoon = !isStash && typeof $loon !== 'undefined';
 const scriptName = typeof $script !== 'undefined' ? $script.name : '';
-const mode = isLoon
+// 原生 Stash 覆写显式传 mode；插件通过固定 tag 区分入口，与 HTTP 运行时分开。
+const isPlugin = isLoon || (!args.mode && /^iepl-whitelist-(cron|network|manual)$/.test(scriptName));
+const mode = isPlugin
   ? (scriptName === 'iepl-whitelist-cron' ? 'cron' : scriptName === 'iepl-whitelist-network' ? 'network' : 'manual')
   : (args.mode || 'tile');
-const API = String(args.api || '').replace(/\/+$/, '');
-const TOKEN = String(args.token || '');
+const API = (isPlugin ? String(args.api || '').trim() : String(args.api || '')).replace(/\/+$/, '');
+const TOKEN = isPlugin ? String(args.token || '').trim() : String(args.token || '');
 const now = Date.now();
 
 let state = load(STATE_KEY, {});
 
 function parseArgs(s) {
-  if (s && typeof s === 'object') return s;
-  try { return JSON.parse(s); } catch (e) { return {}; }
+  if (s && typeof s === 'object' && !Array.isArray(s)) return s;
+  try {
+    const parsed = JSON.parse(s);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch (e) { return {}; }
 }
 function load(k, d) {
   try { const v = $persistentStore.read(k); return v ? JSON.parse(v) : d; } catch (e) { return d; }
@@ -71,7 +78,23 @@ function ago(ts) {
 
 // 没填、或仍是覆写里的占位符（YOUR_…）都视为未配置
 function configured() {
-  return API && TOKEN && (!isLoon || /^https:\/\/[^/\s?#]+(?:\/[^\s?#]*)?$/.test(API)) && !/YOUR_/.test(API) && !/YOUR_/.test(TOKEN);
+  return API && TOKEN && (!isPlugin || /^https:\/\/[^/\s?#]+(?:\/[^\s?#]*)?$/.test(API)) && !/YOUR_/.test(API) && !/YOUR_/.test(TOKEN);
+}
+
+// 仅输出字段是否到达及格式检查结果，不输出原始参数、URL 或 token。
+function loonFieldStatus(key, value) {
+  if (!Object.prototype.hasOwnProperty.call(args, key)) return '未传入';
+  if (args[key] === null || args[key] === undefined || !value) return '为空';
+  if (typeof args[key] !== 'string') return '类型错误';
+  if (/YOUR_/.test(value)) return '仍为占位符';
+  if (key === 'api' && !/^https:\/\/[^/\s?#]+(?:\/[^\s?#]*)?$/.test(value)) return '不是有效 HTTPS 地址';
+  return '已收到';
+}
+function loonConfigIssue() {
+  const apiStatus = loonFieldStatus('api', API);
+  const tokenStatus = loonFieldStatus('token', TOKEN);
+  if (apiStatus === '已收到' && tokenStatus === '已收到') return '';
+  return 'api：' + apiStatus + '；token：' + tokenStatus;
 }
 
 // Loon 的 timeout 单位是毫秒，Stash 是秒；两端都强制 DIRECT。
@@ -213,7 +236,7 @@ function tile() {
     if (s.removed && justAdded) lines.push('已移除  ' + s.removed);
     lines.push('检查于 ' + hhmm(s.lastCheck) + ' · 下次约 ' + next);
   }
-  if (isLoon) {
+  if (isPlugin) {
     const content = lines.join('\n');
     console.log(title + '\n' + content);
     // 新增通知已由 record() 发送，避免一次手动同步重复提示。
@@ -228,7 +251,7 @@ function tile() {
 
 function finish() {
   if (mode !== 'cron' && mode !== 'network') return tile();
-  if (isLoon) {
+  if (isPlugin) {
     console.log(state.offline ? '直连联网探测未通过，已跳过同步'
       : state.error ? 'IEPL 同步失败（详见状态与通知）' : 'IEPL 同步成功：' + state.ip);
   }
@@ -252,12 +275,21 @@ function runSync() {
   });
 }
 
-if (!configured()) {
+const loonIssue = isPlugin ? loonConfigIssue() : '';
+if (isPlugin || !configured()) {
+  const argumentType = rawArgument === null ? 'null' : Array.isArray(rawArgument) ? 'array' : typeof rawArgument;
+  console.log('[IEPL 1.2.1] runtime=' + (isStash ? 'Stash' : isLoon ? 'Loon' : 'unknown')
+    + '；entry=' + (isPlugin ? mode : 'native') + '；argument=' + argumentType + '；api=' + loonFieldStatus('api', API)
+    + '；token=' + loonFieldStatus('token', TOKEN));
+}
+
+if (!configured() || loonIssue) {
   // 还没填自定义信息：面板上提示去哪里填；cron 静默退出，避免每分钟打扰
   if (mode === 'cron' || mode === 'network') {
     $done();
-  } else if (isLoon) {
-    $notification.post('IEPL 白名单 ⚙️', '尚未配置', '请在插件参数中填写 HTTPS 服务地址和 token');
+  } else if (isPlugin) {
+    $notification.post('IEPL 白名单 ⚙️', '配置未就绪', loonIssue
+      + '\n请保存插件参数并重载配置，从插件的手动脚本入口运行。');
     $done();
   } else {
     $done({

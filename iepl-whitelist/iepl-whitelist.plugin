@@ -14,6 +14,6 @@ token = input,"YOUR_TOKEN",type=string,tag=访问令牌,desc=服务端校验的 
 # 请求在脚本内指定 node=DIRECT，不依赖规则、代理节点或策略组健康状态。
 # 无需 MitM 证书，也无需在插件中写入上游 IEPL API Key。
 [Script]
-cron "* * * * *" then script("https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.0", {${api}, ${token}}) with tag="iepl-whitelist-cron", timeout=30
-network-changed then script("https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.0", {${api}, ${token}}) with tag="iepl-whitelist-network", timeout=30
-generic then script("https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.0", {${api}, ${token}}) with tag="iepl-whitelist-manual", img_url="checkmark.shield.system", timeout=30
+cron "* * * * *" then script("https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.1", {${api}, ${token}}) with tag="iepl-whitelist-cron", timeout=30
+network-changed then script("https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.1", {${api}, ${token}}) with tag="iepl-whitelist-network", timeout=30
+generic then script("https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.2.1", {${api}, ${token}}) with tag="iepl-whitelist-manual", img_url="checkmark.shield.system", timeout=30

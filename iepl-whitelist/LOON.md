@@ -6,7 +6,7 @@
 
 需要 **Loon 3.5.1 (983) 或更新版本**，并先部署好同步服务。
 
-1. 在 Loon 插件页面添加本插件。发布到仓库后可使用以下地址：
+1. 在 Loon 插件页面添加本插件：
 
    ```text
    https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.plugin
@@ -21,6 +21,26 @@
 尚未发布时，可先将 `.plugin` 和 `.js` 导入 Loon 本地，将插件三处 `script(...)` 中的远程 URL 改成已导入的本地脚本路径；本地文件路径按 Loon 中实际保存的位置填写。
 
 参数为空或仍为 `YOUR_…` 时不会联网。手动执行会提示配置，后台任务静默退出。token 保存在自己的 Loon 配置中；不要分享填写后的配置、备份或参数截图。
+
+## Stash TestFlight 的 Loon 插件兼容模式
+
+插件入口与实际 HTTP 运行时分别识别：原生 Loon 使用毫秒制超时与 `node: "DIRECT"`；
+Stash 使用秒制超时与 `X-Stash-Selected-Proxy: DIRECT`。插件固定 tag 负责识别定时、网络变化和手动入口，原生 Stash 覆写继续使用 `mode` 参数。
+
+Stash TestFlight 的插件参数绑定仍需实机确认。更新插件及脚本资源到 `1.2.1` 后，保存参数、重载配置，再从插件手动入口运行。
+日志会输出一行不含地址和 token 值的诊断，例如：
+
+```text
+[IEPL 1.2.1] runtime=Stash；entry=manual；argument=object；api=已收到；token=已收到
+```
+
+- 两个字段均“已收到”：脚本已经拿到参数，随后才进行联网探测。
+- “未传入”：解析后的参数对象缺少该字段；结合 `argument` 类型区分未绑定和未解析。请提供 Stash 版本与 Build，以及这行诊断，不要粘贴原始参数。
+- “为空”或“仍为占位符”：保存插件参数并重载配置。
+- “不是有效 HTTPS 地址”：检查协议和格式；复制粘贴带来的首尾空白会自动去除。
+- `entry=native`：未识别出插件固定 tag，需核对 Stash 转换后的脚本名称和入口；原生 `.stoverride` 显示 native 属正常行为。
+
+按 [Loon 官方说明](https://nsloon.app/docs/Script/script_v2/)，插件参数在配置加载时绑定，修改参数后需重载配置；普通远程脚本不自带插件参数作用域。
 
 ## 同步时机
 
