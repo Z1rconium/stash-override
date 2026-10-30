@@ -1,12 +1,13 @@
 name: '🛡 IEPL 白名单自动同步'
 desc: |-
+  先探测直连联网；未通过则跳过同步，不检查代理节点是否连通。
   每 5 分钟检测一次「直连出口 IP」，不在 IEPL 白名单里就自动添加；
   代理启动时立即检测一次；首页「面板」里的 Tile 显示状态，点击即可手动同步。
   使用前必须先把本文件里带 ★ 的 YOUR_… 占位符改成你自己的（见文件顶部说明）。
 author: 'Z1rconium'
 category: '🛡 Network'
 icon: 'checkmark.shield.fill'
-version: '1.0.0'
+version: '1.1.0'
 
 # ==============================================================================
 # ★ 使用前必须修改的自定义信息（本文件里一共 2 种，全部用 ★ 标出，别处都不用改）
@@ -24,6 +25,7 @@ version: '1.0.0'
 # 其余内容（cron 周期、Tile 外观、脚本地址）一般不需要改。
 # ==============================================================================
 
+# DIRECT 是 Stash 直连策略，不是绕过 Stash 的 iOS 原生网络栈开关。
 # 让同步服务的域名始终走 DIRECT：服务端把“请求来源 IP”当作你的直连 IP，
 # 如果这个请求走了代理，白名单里记录的就是代理节点的 IP，而不是你的。
 prepend-rules:
@@ -43,7 +45,7 @@ cron:
 
 tiles:
   - name: iepl-whitelist-tile
-    # 面板自动刷新周期（秒）。每次刷新都会做一次同步，点击 Tile 同样会立即同步。
+    # 面板自动刷新周期（秒）。每次刷新或点击都会先探测直连联网，通过后才同步。
     interval: 300
     title: IEPL 白名单
     content: 点击同步
@@ -57,8 +59,8 @@ script-providers:
   # 可把脚本文件放到自己的服务器，再把下面两个 url 改成你的地址。
   # 更新脚本后把 ?v= 后面的版本号改一下，可强制 Stash 重新下载（脚本按 interval 缓存）。
   iepl-whitelist-cron:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.0.0
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.1.0
     interval: 86400
   iepl-whitelist-tile:
-    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.0.0
+    url: https://raw.githubusercontent.com/Z1rconium/stash-override/main/iepl-whitelist/iepl-whitelist.js?v=1.1.0
     interval: 86400

@@ -14,6 +14,7 @@
  *          - 代理刚启动（距离上次 cron 超过 150 秒，说明中间代理是关着的）
  *          - 距离上次成功同步已满 5 分钟
  *          - 上次同步失败，且已过 1 分钟（失败重试）
+ *   所有入口：先以 DIRECT 探测联网；未通过则静默跳过，不累计失败，下一分钟重试。
  *   tile : 点击面板 / 面板刷新时执行，总是立即检查并同步（手动同步）
  *
  * 需要的服务端接口（脚本只依赖这一个，详见 README）：
@@ -21,7 +22,7 @@
  *   成功 -> {"ok":true,"ip":"1.2.3.4","status":"exists"|"added","count":3,"limit":10,
  *            "mode":"ip","whitelist":[...],"removed_ip":"可选，满额时被移除的 IP"}
  *   失败 -> {"ok":false,"msg":"原因","ip":"可选"}
- *   服务端把“它看到的请求来源 IP”当作你的直连 IP，所以请求必须走 DIRECT（见覆写里的规则）。
+ *   服务端把“它看到的请求来源 IP”当作你的直连 IP，所以请求必须走 DIRECT（见覆写里的规则）；这不等同于绕过 Stash 的 iOS 原生网络栈。
  *
  * 超时处理：
  *   服务端收到请求后会一直做完，所以超时不一定是失败。网络层失败会立即重试（最多 3 次）；
@@ -34,6 +35,8 @@ const INTERVAL = 5 * 60 * 1000;      // 正常检查间隔
 const RETRY = 60 * 1000;             // 失败后重试间隔
 const FRESH_GAP = 150 * 1000;        // 超过此间隙认为代理刚(重新)启动
 const ATTEMPTS = 3;                  // 网络层失败时的最多尝试次数
+const PROBE_URL = 'https://www.apple.com/library/test/success.html';
+const PROBE_TIMEOUT = 3;             // 加上同步最多 24 秒，总计 27 秒
 const REQ_TIMEOUT = 8;               // 单次请求超时（秒）；3 × 8 = 24 秒，小于 cron 的 30 秒
 
 const args = parseArgs(typeof $argument === 'undefined' ? '' : $argument);
@@ -67,6 +70,20 @@ function configured() {
   return API && TOKEN && !/YOUR_/.test(API) && !/YOUR_/.test(TOKEN);
 }
 
+// 探测和同步都固定使用 DIRECT，不查询代理节点健康状态。
+// HTTPS + 预期响应可排除大部分登录门户；失败仅表示直连探测未通过。
+function checkConnection(cb) {
+  $httpClient.get({
+    url: PROBE_URL,
+    headers: { 'X-Stash-Selected-Proxy': encodeURIComponent('DIRECT'), 'Cache-Control': 'no-cache' },
+    timeout: PROBE_TIMEOUT,
+    'auto-redirect': false,
+    'auto-cookie': false,
+  }, (err, resp, data) => {
+    cb(!err && resp && Number(resp.status) === 200 && /<BODY>Success<\/BODY>/i.test(String(data)));
+  });
+}
+
 // 回调 cb(err, j)：err = { kind: 'net' | 'server', msg }
 function request(path, cb) {
   $httpClient.post({
@@ -78,6 +95,7 @@ function request(path, cb) {
     },
     body: '',
     timeout: REQ_TIMEOUT,
+    'auto-redirect': false, // 不把 token 随重定向发送到其他地址
   }, (err, resp, data) => {
     if (err) return cb({ kind: 'net', msg: String(err) });
     let j = null;
@@ -146,7 +164,14 @@ function tile() {
   const s = state;
   const next = hhmm(now + INTERVAL);
   let title, icon, color, lines = [];
-  if (s.error && s.errKind === 'net') {
+  if (s.offline) {
+    title = 'IEPL 白名单 ⏸';
+    icon = 'wifi.slash';
+    color = '#8E8E93';
+    lines.push('直连联网探测未通过，已跳过同步');
+    lines.push(s.lastOk ? '上次成功 ' + ago(s.lastOk) + ' · ' + (s.ip || '') : '尚无成功记录');
+    lines.push('每分钟重新检测；也可点击重试');
+  } else if (s.error && s.errKind === 'net') {
     title = 'IEPL 白名单 ⚠️';
     icon = 'wifi.exclamationmark';
     color = '#EF6C00';
@@ -175,6 +200,23 @@ function tile() {
   $done({ title, content: lines.join('\n'), icon, backgroundColor: color });
 }
 
+// 离线跳过不计作同步失败，也不更新 lastCheck / lastOk。
+function runSync() {
+  checkConnection((online) => {
+    state.offline = !online;
+    if (!online) {
+      save(STATE_KEY, state);
+      if (mode === 'cron') $done(); else tile();
+      return;
+    }
+    sync((err, j) => {
+      record(err, j);
+      save(STATE_KEY, state);
+      if (mode === 'cron') $done(); else tile();
+    });
+  });
+}
+
 if (!configured()) {
   // 还没填自定义信息：面板上提示去哪里填；cron 静默退出，避免每分钟打扰
   if (mode === 'cron') {
@@ -193,11 +235,11 @@ if (!configured()) {
   const fresh = !last || now - last > FRESH_GAP;
   const since = now - (state.lastCheck || 0);
   const due = state.error ? since >= RETRY - 5000 : since >= INTERVAL - 10000;
-  if (!fresh && !due) {
+  if (!fresh && !due && !state.offline) {
     $done();
   } else {
-    sync((err, j) => { record(err, j); save(STATE_KEY, state); $done(); });
+    runSync();
   }
 } else {
-  sync((err, j) => { record(err, j); save(STATE_KEY, state); tile(); });
+  runSync();
 }
