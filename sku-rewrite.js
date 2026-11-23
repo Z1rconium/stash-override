@@ -276,6 +276,54 @@ function rewrite(buf, depth, hits) {
   return changed ? [encode(out), hits] : [buf, hits];
 }
 
+/* ---------------- gRPC 帧剥离 ---------------- */
+// gRPC 消息格式：[1B compressed-flag][4B big-endian length][payload]
+// 可能有多帧（流式）。返回拼接后的 payload；不像 gRPC 则返回 null。
+function stripGrpcFrames(buf) {
+  if (!buf || buf.length < 5) return null;
+  var out = [];
+  var i = 0;
+  var frames = 0;
+  while (i + 5 <= buf.length) {
+    var flag = buf[i];
+    if (flag !== 0 && flag !== 1) return null;   // 首字节必须是 0 或 1
+    var len = (buf[i + 1] << 24) | (buf[i + 2] << 16) | (buf[i + 3] << 8) | buf[i + 4];
+    len = len >>> 0;
+    if (len === 0 || i + 5 + len > buf.length) return null;
+    var payload = buf.slice(i + 5, i + 5 + len);
+    if (flag === 1) return null;    // 压缩帧，脚本无法解压，放弃
+    out.push(payload);
+    i += 5 + len;
+    frames++;
+    if (frames > 50) break;
+  }
+  if (!frames || i !== buf.length) return null;   // 必须刚好消费完
+  if (frames === 1) return out[0];
+  // 多帧拼接
+  var total = 0;
+  for (var k = 0; k < out.length; k++) total += out[k].length;
+  var merged = new Uint8Array(total);
+  var off = 0;
+  for (var m = 0; m < out.length; m++) {
+    merged.set(out[m], off);
+    off += out[m].length;
+  }
+  return merged;
+}
+
+/* ---------------- gRPC 帧封装 ---------------- */
+function wrapGrpcFrame(payload) {
+  var out = new Uint8Array(5 + payload.length);
+  out[0] = 0;   // 未压缩
+  var len = payload.length;
+  out[1] = (len >>> 24) & 0xff;
+  out[2] = (len >>> 16) & 0xff;
+  out[3] = (len >>> 8) & 0xff;
+  out[4] = len & 0xff;
+  out.set(payload, 5);
+  return out;
+}
+
 /* ---------------- 持久化命中计数（便于自证） ---------------- */
 function bumpStore(n) {
   try {
@@ -343,6 +391,17 @@ function notify(title, body) {
 
     log("原始长度", bytes.length);
 
+    // ---- gRPC 帧处理 ----
+    // ListProducts 是 gRPC：5 字节头 = 1B 压缩标志 + 4B 大端长度，后面跟 protobuf。
+    // 必须先剥掉帧头，否则按 protobuf 解析会错位。
+    var wasGrpc = false;
+    var grpcStripped = stripGrpcFrames(bytes);
+    if (grpcStripped !== null) {
+      log("gRPC 帧已剥离:", bytes.length, "->", grpcStripped.length);
+      bytes = grpcStripped;
+      wasGrpc = true;
+    }
+
     var magic = compressionMagic(bytes);
     if (magic) {
       log("! body 是 " + magic + " 压缩包，未解压");
@@ -362,6 +421,12 @@ function notify(title, body) {
 
     for (var h = 0; h < hits.length; h++) log(hits[h]);
     log("改写后长度", patched.length, "（+", patched.length - bytes.length, " 字节）");
+
+    // 若原始是 gRPC，必须把帧头按新长度重新包回去，否则客户端解析失败
+    if (wasGrpc) {
+      patched = wrapGrpcFrame(patched);
+      log("gRPC 帧已重包:", patched.length, "bytes");
+    }
 
     bumpStore(hits.length);
     notify("Google One SKU 已改写", hits[0] + "  [总计已改 " + hits.length + " 处]");
